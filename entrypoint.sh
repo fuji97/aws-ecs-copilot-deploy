@@ -37,15 +37,20 @@ done;
 
 # Find application name
 app=$(cat ./copilot/.workspace | sed -e 's/^application: //')
+echo "App: $app"
 # Find all the local services in the workspace.
 svcs=$(./copilot-linux svc ls --local --json | jq '.services[].name' | sed 's/"//g')
+echo "App: $svcs"
 # Find all the local jobs in the workspace.
 jobs=$(./copilot-linux job ls --local --json | jq '.jobs[].name' | sed 's/"//g')
+echo "App: $jobs"
 # Find all the environments
 envs=$(./copilot-linux env ls --json | jq '.environments[].name' | sed 's/"//g')
+echo "App: $envs"
 # Generate the cloudformation templates.
 # The tag is the build ID but we replaced the colon ':' with a dash '-'.
 tag=$(sed 's/:/-/g' <<<"$GITHUB_SHA")
+echo "App: $tag"
 
 for env in $envs; do
     for svc in $svcs; do
@@ -60,6 +65,7 @@ ls -lah ./infrastructure
 # Get S3 Bucket, if not exist, create it
 # TODO Generate better name
 s3_bucket=${INPUT_BUCKET:="ecs-$app"}
+echo "S3 Bucket: $s3_bucket"
 if ! (aws s3api head-bucket --bucket "$s3_bucket" 2>/dev/null) ; then
     echo "Bucket not found, creating bucket..."
     if ! (aws s3 mb --bucket "s3://$s3_bucket" --region ${AWS_DEFAULT_REGION:="$AWS_REGION"}) ; then
@@ -73,7 +79,7 @@ fi
 WORKLOADS=$(echo $jobs $svcs)
 
 for workload in $WORKLOADS; do
-    ADDONSFILE=./infrastructure/$workload.addons.stack.yml
+    ADDONSFILE="./infrastructure/$workload.addons.stack.yml"
     if [ -f "$ADDONSFILE" ]; then
     tmp=$(mktemp)
     timestamp=$(date +%s)
