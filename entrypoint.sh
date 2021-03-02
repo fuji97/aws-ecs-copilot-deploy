@@ -15,7 +15,6 @@ chmod +x ./copilot-linux
 # TODO Do login
 
 # Do deploy
-printenv
 echo "Starting deploy"
 for env in $INPUT_ENVIRONMENTS
 do
@@ -23,6 +22,6 @@ do
     do
         # TODO Add optional app name
         echo "Deploying ${env} - ${service}"
-        ./copilot-linux deploy --env $env --name $service
+        ./copilot-linux deploy --env $env --name $service --tag $GITHUB_SHA
     done
 done
