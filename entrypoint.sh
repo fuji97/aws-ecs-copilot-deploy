@@ -40,17 +40,17 @@ app=$(cat ./copilot/.workspace | sed -e 's/^application: //')
 echo "App: $app"
 # Find all the local services in the workspace.
 svcs=$(./copilot-linux svc ls --local --json | jq '.services[].name' | sed 's/"//g')
-echo "App: $svcs"
+echo "Services: $svcs"
 # Find all the local jobs in the workspace.
 jobs=$(./copilot-linux job ls --local --json | jq '.jobs[].name' | sed 's/"//g')
-echo "App: $jobs"
+echo "Jobs: $jobs"
 # Find all the environments
 envs=$(./copilot-linux env ls --json | jq '.environments[].name' | sed 's/"//g')
-echo "App: $envs"
+echo "Envs: $envs"
 # Generate the cloudformation templates.
 # The tag is the build ID but we replaced the colon ':' with a dash '-'.
 tag=$(sed 's/:/-/g' <<<"$GITHUB_SHA")
-echo "App: $tag"
+echo "Tag: $tag"
 
 for env in $envs; do
     for svc in $svcs; do
@@ -66,9 +66,9 @@ ls -lah ./infrastructure
 # TODO Generate better name
 s3_bucket=${INPUT_BUCKET:="ecs-$app"}
 echo "S3 Bucket: $s3_bucket"
-if ! (aws s3api head-bucket --bucket "$s3_bucket" 2>/dev/null) ; then
+if ! (/usr/local/bin/aws s3api head-bucket --bucket "$s3_bucket" 2>/dev/null) ; then
     echo "Bucket not found, creating bucket..."
-    if ! (aws s3 mb --bucket "s3://$s3_bucket" --region ${AWS_DEFAULT_REGION:="$AWS_REGION"}) ; then
+    if ! (/usr/local/bin/aws s3 mb --bucket "s3://$s3_bucket" --region ${AWS_DEFAULT_REGION:="$AWS_REGION"}) ; then
         >&2 echo "Cannot create bucket!"
         exit 1
     fi
@@ -83,7 +83,7 @@ for workload in $WORKLOADS; do
     if [ -f "$ADDONSFILE" ]; then
     tmp=$(mktemp)
     timestamp=$(date +%s)
-    aws s3 cp "$ADDONSFILE" "s3://$s3_bucket/ghactions/$timestamp/$workload.addons.stack.yml";
+    /usr/local/bin/aws s3 cp "$ADDONSFILE" "s3://$s3_bucket/ghactions/$timestamp/$workload.addons.stack.yml";
     jq --arg a "https://$s3_bucket/ghactions/$timestamp/$workload.addons.stack.yml" '.Parameters.AddonsTemplateURL = $a' ./infrastructure/$workload-test.params.json > "$tmp" && mv "$tmp" ./infrastructure/$workload-test.params.json
     fi
 done;
@@ -141,7 +141,7 @@ for workload in $WORKLOADS; do
     for env in $envs; do
         repo=$(cat ./infrastructure/$workload-$env.params.json | jq '.Parameters.ContainerImage' | sed 's/"//g');
         region=$(echo $repo | cut -d'.' -f4);
-        $(aws ecr get-login --no-include-email --region $region);
+        $(/usr/local/bin/aws ecr get-login --no-include-email --region $region);
         docker tag $image_id $repo;
         docker push $repo;
     done;
@@ -149,13 +149,13 @@ done;
 
 # Deploy CloudFormationTemplate
 for env in $INPUT_ENVIRONMENTS; do
-    role="arn:aws:iam::${$(aws sts get-caller-identity | jq '.Account' | sed 's/"//g')}:role/$app-$env-CFNExecutionRole"
+    role="arn:aws:iam::${$(/usr/local/bin/aws sts get-caller-identity | jq '.Account' | sed 's/"//g')}:role/$app-$env-CFNExecutionRole"
     for workload in $INPUT_SERVICES $INPUT_JOBS; do
         echo "Deploying $env - $workload"
         # CloudFormation stack name
         stack="$app-$env-$workload"
         stacks+=stack
-        aws cloudformation deploy --template-file ".infrastructure/$workload-$env.stack.yml" --stack-name "$stack" --parameter-overrides ".infrastructure/$workload-$env.params.json" --capabilities CAPABILITY_NAMED_IAM --s3-bucket "$s3_bucket" --role-arn "$role"
+        /usr/local/bin/aws cloudformation deploy --template-file ".infrastructure/$workload-$env.stack.yml" --stack-name "$stack" --parameter-overrides ".infrastructure/$workload-$env.params.json" --capabilities CAPABILITY_NAMED_IAM --s3-bucket "$s3_bucket" --role-arn "$role"
     done;
 done;
 
@@ -168,7 +168,7 @@ fails=0
 while [[ ${#stacks_done[@]} < ${#stacks[@]} ]]; do
     for stack in $stacks; do
         if [[ ! " ${stacks_done[@]} " =~ " ${stack} " ]]; then
-            status=$(aws cloudformation describe-stacks --stack-name aws-ecs-node-demo-prod-backend | jq ".Stacks[0].StackStatus" | sed 's/"//g')
+            status=$(/usr/local/bin/aws cloudformation describe-stacks --stack-name aws-ecs-node-demo-prod-backend | jq ".Stacks[0].StackStatus" | sed 's/"//g')
             if [[ ! " ${in_progress_status[@]} " =~ " ${status} " ]]; then
                 stacks_done+=$stack
                 if [[ " ${positive_status[@]} " =~ " ${status} " ]]; then
