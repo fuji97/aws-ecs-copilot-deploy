@@ -15,10 +15,11 @@ chmod +x ./copilot-linux
 # TODO Do login
 
 # Do deploy
+printenv
 echo "Starting deploy"
-for env in $(INPUT_ENVIRONMENTS)
+for env in $INPUT_ENVIRONMENTS
 do
-    for service in $(INPUT_SERVICES)
+    for service in $INPUT_SERVICES
     do
         # TODO Add optional app name
         echo "Deploying ${env} - ${service}"
