@@ -24,7 +24,7 @@ inputs:
     description: 'AWS region (if not logged)'
     required: false
   useCopilot:
-    description: 'AWS region (if not logged)'
+    description: 'Use automatic deploy'
     required: false
 runs:
   using: 'docker'
