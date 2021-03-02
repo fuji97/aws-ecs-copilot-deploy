@@ -5,4 +5,5 @@ FROM amazonlinux:2
 COPY entrypoint.sh /entrypoint.sh
 
 # Code file to execute when the docker container starts up (`entrypoint.sh`)
+RUN chmod +x entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
