@@ -1,7 +1,9 @@
 #!/bin/sh -l
 
-echo "Installing Docker"
+#echo "Installing Docker"
 #amazon-linux-extras install docker=18
+
+# TODO Improve: dont'do everything in $GITHUB_WORKSPACE, install CLI and tools in $HOME
 
 echo "cd into $GITHUB_WORKSPACE"
 cd $GITHUB_WORKSPACE
@@ -14,14 +16,5 @@ chmod +x ./copilot-linux
 
 # TODO Do login
 
-# Do deploy
-echo "Starting deploy"
-for env in $INPUT_ENVIRONMENTS
-do
-    for service in $INPUT_SERVICES
-    do
-        # TODO Add optional app name
-        echo "Deploying ${env} - ${service}"
-        ./copilot-linux deploy --env $env --name $service --tag $GITHUB_SHA
-    done
-done
+# TODO For now, load manual only
+./manual.sh

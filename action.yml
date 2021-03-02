@@ -7,14 +7,23 @@ inputs:
     required: true
   services:
     description: 'Services to deploy'
-    required: true
-  aws_access_key:
+    required: false
+  jobs:
+    description: 'Jobs to deploy'
+    required: false
+  bucket:
+    description: 'Bucket to upload CloudFormation template'
+    required: false
+  awsAccessKey:
     description: 'AWS access key (if not logged)'
     required: false
-  aws_secret_key:
+  awsSecretKey:
     description: 'AWS secret key (if not logged)'
     required: false
-  aws_region:
+  awsRegion:
+    description: 'AWS region (if not logged)'
+    required: false
+  useCopilot:
     description: 'AWS region (if not logged)'
     required: false
 runs:
