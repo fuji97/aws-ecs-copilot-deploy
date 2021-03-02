@@ -1,13 +1,13 @@
 #!/bin/sh -l
 
 echo "Installing Docker"
-amazon-linux-extras install docker=18
+#amazon-linux-extras install docker=18
 
 echo "cd into $GITHUB_WORKSPACE"
 cd $GITHUB_WORKSPACE
 
 # Download the copilot linux binary.
-echo "Duwnload the copilot linux binary"
+echo "Download the copilot linux binary"
 wget https://ecs-cli-v2-release.s3.amazonaws.com/copilot-linux-v1.2.0
 mv ./copilot-linux-v1.2.0 ./copilot-linux
 chmod +x ./copilot-linux
