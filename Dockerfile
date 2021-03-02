@@ -1,5 +1,8 @@
 # Container image that runs your code
-FROM ubuntu:latest
+FROM alpine:latest
+
+# Install dependencies
+RUN apk add --no-cache wget
 
 # Copies your code file from your action repository to the filesystem path `/` of the container
 COPY entrypoint.sh /entrypoint.sh
