@@ -157,13 +157,11 @@ for env in $INPUT_ENVIRONMENTS; do
     role="arn:aws:iam::$id:role/$app-$env-CFNExecutionRole"
     for workload in $INPUT_SERVICES $INPUT_JOBS; do
         echo "Deploying $env - $workload"
-        ls -la
-        ls infrastructure/
         # CloudFormation stack name
         stack="$app-$env-$workload"
         stacks+=stack
         aws cloudformation deploy  \
-        --template-file ".infrastructure/$workload-$env.stack.yml" \
+        --template-file "./infrastructure/$workload-$env.stack.yml" \
         --stack-name "$stack" \
         --parameter-overrides "file://infrastructure/$workload-$env.params.json" \
         --capabilities CAPABILITY_NAMED_IAM \
