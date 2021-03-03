@@ -1,11 +1,16 @@
+#!/bin/bash
+
 # Do deploy
-echo "Starting deploy"
+echo "Manual deploy"
+
+cd $GITHUB_WORKSPACE
+
 for env in $INPUT_ENVIRONMENTS
 do
     for service in $INPUT_SERVICES
     do
-        # TODO Add optional app name
-        echo "Deploying ${env} - ${service}"
+        echo "::group::Deploy ${env} - ${service}"
         ./copilot-linux deploy --env $env --name $service --tag $GITHUB_SHA
+        echo "::endgroup::"
     done
 done

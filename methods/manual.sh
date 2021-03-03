@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export COLOR="false"
+echo "Manual deploy"
 
 # Docker login
 if [[ ! -z "$INPUT_DOCKERHUBUSERNAME" && ! -z "$INPUT_DOCKERHUBPASSWORD" ]] ; then
@@ -10,60 +10,70 @@ else
     echo "No Docker credentials found, skip login to Docker";
 fi
 # First, upgrade the cloudformation stack of every environment in the pipeline.
-pipeline=$(cat ./copilot/pipeline.yml | ruby -ryaml -rjson -e 'puts JSON.pretty_generate(YAML.load(ARGF))')
-
-#pl_envs=$(echo $pipeline | jq '.stages[].name' | sed 's/"//g')
-
+echo "::group::Upgrade environments"
 for env in $INPUT_ENVIRONMENTS; do
-./copilot-linux env upgrade -n $env;
+    echo "Upgrading $env"
+    ./copilot-linux env upgrade -n $env;
 done;
+echo "::endgroup::"
 
 # Find application name
-app=$(cat ./copilot/.workspace | sed -e 's/^application: //')
+app=$(cat $GITHUB_WORKSPACE/copilot/.workspace | sed -e 's/^application: //')
+echo "App: $app"
 # Find all the local services in the workspace.
 svcs=$(./copilot-linux svc ls --local --json | jq '.services[].name' | sed 's/"//g')
+echo "Services: ${svcs[@]}"
 # Find all the local jobs in the workspace.
 jobs=$(./copilot-linux job ls --local --json | jq '.jobs[].name' | sed 's/"//g')
+echo "Jobs: ${jobs[@]}"
 # Find all the environments
 envs=$(./copilot-linux env ls --json | jq '.environments[].name' | sed 's/"//g')
+echo "Envs: ${envs[@]}"
+# Find account ID
+id=$(aws sts get-caller-identity | jq '.Account' | sed 's/"//g')
 # Generate the cloudformation templates.
-# The tag is the build ID but we replaced the colon ':' with a dash '-'.
 tag=$(sed 's/:/-/g' <<<"$GITHUB_SHA")
+echo "Tag: ${tag[@]}"
 
+echo "::group::Generate packages"
 for env in $envs; do
     for svc in $svcs; do
-    ./copilot-linux svc package -n $svc -e $env --output-dir './infrastructure' --tag $tag;
+    ./copilot-linux svc package -n $svc -e $env --output-dir "$GITHUB_WORKSPACE/infrastructure" --tag $tag;
     done;
     for job in $jobs; do
-    ./copilot-linux job package -n $job -e $env --output-dir './infrastructure' --tag $tag;
+    ./copilot-linux job package -n $job -e $env --output-dir "$GITHUB_WORKSPACE/infrastructure" --tag $tag;
     done;
 done;
-ls -lah ./infrastructure
+echo "::endgroup::"
 
 # Get S3 Bucket, if not exist, create it
-# TODO Generate better name
+echo "::group::Setup S3 Bucket"
 s3_bucket=${INPUT_BUCKET:="ecs-$app"}
+echo "S3 Bucket: $s3_bucket"
 if ! (aws s3api head-bucket --bucket "$s3_bucket" 2>/dev/null) ; then
     echo "Bucket not found, creating bucket..."
-    if ! (aws s3 mb --bucket "s3://$s3_bucket" --region ${AWS_DEFAULT_REGION:="$AWS_REGION"}) ; then
-        >&2 echo "Cannot create bucket!"
-        exit 1
+    if ! (aws s3 mb "s3://$s3_bucket" --region ${AWS_DEFAULT_REGION:="$AWS_REGION"}) ; then
+        echo "::error::Cannot create bucket"
     fi
 fi
+echo "::endgroup::"
 
 # Concatenate jobs and services into one var for addons
 # If addons exists, upload addons templates to each S3 bucket and write template URL to template config files.
+echo "::group::Upload addons"
 WORKLOADS=$(echo $jobs $svcs)
 
 for workload in $WORKLOADS; do
-    ADDONSFILE=./infrastructure/$workload.addons.stack.yml
+    ADDONSFILE="$GITHUB_WORKSPACE/infrastructure/$workload.addons.stack.yml"
     if [ -f "$ADDONSFILE" ]; then
     tmp=$(mktemp)
     timestamp=$(date +%s)
     aws s3 cp "$ADDONSFILE" "s3://$s3_bucket/ghactions/$timestamp/$workload.addons.stack.yml";
-    jq --arg a "https://$s3_bucket/ghactions/$timestamp/$workload.addons.stack.yml" '.Parameters.AddonsTemplateURL = $a' ./infrastructure/$workload-test.params.json > "$tmp" && mv "$tmp" ./infrastructure/$workload-test.params.json
+    jq --arg a "https://$s3_bucket/ghactions/$timestamp/$workload.addons.stack.yml" '.Parameters.AddonsTemplateURL = $a' $GITHUB_WORKSPACE/infrastructure/$workload-test.params.json > "$tmp" && mv "$tmp" $GITHUB_WORKSPACE/infrastructure/$workload-test.params.json
     fi
 done;
+echo "::endgroup::"
+
 # Build images
 # - For each manifest file:
 #   - Read the path to the Dockerfile by translating the YAML file into JSON.
@@ -73,6 +83,9 @@ done;
 #     - Login and push the image.
 
 for workload in $WORKLOADS; do
+    echo "::group::Building and uploading $workload"
+    echo "cd into $GITHUB_WORKSPACE"
+    cd $GITHUB_WORKSPACE
     manifest=$(cat ./copilot/$workload/manifest.yml | ruby -ryaml -rjson -e 'puts JSON.pretty_generate(YAML.load(ARGF))')
     image_location=$(echo $manifest | jq '.image.location')
     if [ ! "$image_location" = null ]; then
@@ -118,49 +131,57 @@ for workload in $WORKLOADS; do
     for env in $envs; do
         repo=$(cat ./infrastructure/$workload-$env.params.json | jq '.Parameters.ContainerImage' | sed 's/"//g');
         region=$(echo $repo | cut -d'.' -f4);
-        $(aws ecr get-login --no-include-email --region $region);
+        aws ecr get-login-password --region $region | docker login --username AWS --password-stdin $id.dkr.ecr.$region.amazonaws.com;
         docker tag $image_id $repo;
         docker push $repo;
     done;
+    echo "cd back to /"
+    cd /
+    echo "::endgroup::"
 done;
 
 # Deploy CloudFormationTemplate
 for env in $INPUT_ENVIRONMENTS; do
-    role="arn:aws:iam::${$(aws sts get-caller-identity | jq '.Account' | sed 's/"//g')}:role/$app-$env-CFNExecutionRole"
-    for workload in $INPUT_SERVICES $INPUT_JOBS; do
-        echo "Deploying $env - $workload"
+    role="arn:aws:iam::$id:role/$app-$env-CFNExecutionRole"
+    for workload in $INPUT_WORKLOADS; do
         # CloudFormation stack name
         stack="$app-$env-$workload"
-        stacks+=stack
-        aws cloudformation deploy --template-file ".infrastructure/$workload-$env.stack.yml" --stack-name "$stack" --parameter-overrides ".infrastructure/$workload-$env.params.json" --capabilities CAPABILITY_NAMED_IAM --s3-bucket "$s3_bucket" --role-arn "$role"
+        echo "::group::Deploying stack: $stack"
+        aws cloudformation deploy  \
+            --template-file "$GITHUB_WORKSPACE/infrastructure/$workload-$env.stack.yml" \
+            --stack-name "$stack" \
+            --parameter-overrides "file://infrastructure/$workload-$env.params.json" \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --s3-bucket "$s3_bucket" \
+            --role-arn "$role"
+        echo "::endgroup::"
     done;
 done;
 
 # Wait deploys to finish
-stacks_done=()
-in_progress_status = (CREATE_IN_PROGRESS UPDATE_COMPLETE_CLEANUP_IN_PROGRESS UPDATE_IN_PROGRESS IMPORT_IN_PROGRESS)
-positive_status = (CREATE_COMPLETE UPDATE_COMPLETE IMPORT_COMPLETE)
-fails=0
+# in_progress_status=(CREATE_IN_PROGRESS UPDATE_COMPLETE_CLEANUP_IN_PROGRESS UPDATE_IN_PROGRESS IMPORT_IN_PROGRESS)
+# positive_status=(CREATE_COMPLETE UPDATE_COMPLETE IMPORT_COMPLETE)
+# fails=0
 
-while [[ ${#stacks_done[@]} < ${#stacks[@]} ]]; do
-    for stack in $stacks; do
-        if [[ ! " ${stacks_done[@]} " =~ " ${stack} " ]]; then
-            status=$(aws cloudformation describe-stacks --stack-name aws-ecs-node-demo-prod-backend | jq ".Stacks[0].StackStatus" | sed 's/"//g')
-            if [[ ! " ${in_progress_status[@]} " =~ " ${status} " ]]; then
-                stacks_done+=$stack
-                if [[ " ${positive_status[@]} " =~ " ${status} " ]]; then
-                    echo "$stack deployed successfully"
-                else
-                    echo "$stack failed"
-                    fails=$fails+1
-                fi
-            fi
-        fi
-    done
-    sleep 1
-done
+# while [[ ${#stacks_done[@]} < ${#stacks[@]} ]]; do
+#     for stack in $stacks; do
+#         if [[ ! " ${stacks_done[@]} " =~ " ${stack} " ]]; then
+#             status=$(aws cloudformation describe-stacks --stack-name aws-ecs-node-demo-prod-backend | jq ".Stacks[0].StackStatus" | sed 's/"//g')
+#             if [[ ! " ${in_progress_status[@]} " =~ " ${status} " ]]; then
+#                 stacks_done+=$stack
+#                 if [[ " ${positive_status[@]} " =~ " ${status} " ]]; then
+#                     echo "$stack deployed successfully"
+#                 else
+#                     echo "$stack failed"
+#                     fails=$fails+1
+#                 fi
+#             fi
+#         fi
+#     done
+#     sleep 1
+# done
 
-if [[ fails > 0 ]]; then
-    echo "One or more stacks failed to deploy"
-    exit 1
-fi
+# if [[ fails > 0 ]]; then
+#     echo "One or more stacks failed to deploy"
+#     exit 1
+# fi

@@ -1,4 +1,4 @@
-# Container image that runs your code
+# Container image
 FROM ubuntu:latest
 
 # Install dependencies
@@ -11,7 +11,7 @@ RUN apt-get update \
     software-properties-common \
     wget \
     unzip \
-    amazon-ecr-credential-helper \
+    ruby \
     jq
 # Install AWS CLI v2
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
@@ -25,16 +25,14 @@ RUN add-apt-repository \
     stable"
 RUN apt-get update \
     && apt-get install -y --no-install-recommends docker-ce docker-ce-cli containerd.io
-# TODO Install Ruby and AWS CLI only if manual deploy is requested
-RUN apt-get install -y --no-install-recommends ruby
 RUN rm -rf /var/lib/apt/lists/*
-# TODO Not working
-COPY docker/config.json /root/.docker/config.json
 
-
-# Copies your code file from your action repository to the filesystem path `/` of the container
+# Copy code file from your action repository to the filesystem path `/` of the container
 COPY entrypoint.sh /entrypoint.sh
+COPY methods /methods
 
-# Code file to execute when the docker container starts up (`entrypoint.sh`)
-RUN chmod +x entrypoint.sh
+# Set correct permissions to execute the scripts
+RUN chmod +x entrypoint.sh && chmod +x methods/*
+
+# Set entrypoint (`entrypoint.sh`)
 ENTRYPOINT ["/entrypoint.sh"]
