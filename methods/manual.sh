@@ -158,31 +158,3 @@ for env in $INPUT_ENVIRONMENTS; do
         echo "::endgroup::"
     done;
 done;
-
-# Wait deploys to finish
-# in_progress_status=(CREATE_IN_PROGRESS UPDATE_COMPLETE_CLEANUP_IN_PROGRESS UPDATE_IN_PROGRESS IMPORT_IN_PROGRESS)
-# positive_status=(CREATE_COMPLETE UPDATE_COMPLETE IMPORT_COMPLETE)
-# fails=0
-
-# while [[ ${#stacks_done[@]} < ${#stacks[@]} ]]; do
-#     for stack in $stacks; do
-#         if [[ ! " ${stacks_done[@]} " =~ " ${stack} " ]]; then
-#             status=$(aws cloudformation describe-stacks --stack-name aws-ecs-node-demo-prod-backend | jq ".Stacks[0].StackStatus" | sed 's/"//g')
-#             if [[ ! " ${in_progress_status[@]} " =~ " ${status} " ]]; then
-#                 stacks_done+=$stack
-#                 if [[ " ${positive_status[@]} " =~ " ${status} " ]]; then
-#                     echo "$stack deployed successfully"
-#                 else
-#                     echo "$stack failed"
-#                     fails=$fails+1
-#                 fi
-#             fi
-#         fi
-#     done
-#     sleep 1
-# done
-
-# if [[ fails > 0 ]]; then
-#     echo "One or more stacks failed to deploy"
-#     exit 1
-# fi
