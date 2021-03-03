@@ -28,7 +28,7 @@ RUN apt-get update \
 # TODO Install Ruby and AWS CLI only if manual deploy is requested
 RUN apt-get install -y --no-install-recommends ruby
 RUN rm -rf /var/lib/apt/lists/*
-COPY docker/config.json /.docker/config.json
+COPY docker/config.json /root/.docker/config.json
 
 
 # Copies your code file from your action repository to the filesystem path `/` of the container
