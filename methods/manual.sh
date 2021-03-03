@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Manual deploy"
+echo "👉 Manual deploy"
 
 # Docker login
 if [[ ! -z "$INPUT_DOCKERHUBUSERNAME" && ! -z "$INPUT_DOCKERHUBPASSWORD" ]] ; then
@@ -10,13 +10,14 @@ else
     echo "No Docker credentials found, skip login to Docker";
 fi
 # First, upgrade the cloudformation stack of every environment in the pipeline.
-echo "::group::Upgrade environments"
+echo "::group::⬆️ Upgrade environments"
 for env in $INPUT_ENVIRONMENTS; do
     echo "Upgrading $env"
     ./copilot-linux env upgrade -n $env;
 done;
 echo "::endgroup::"
 
+echo "::group::📦 Generate packages"
 # Find application name
 app=$(cat $GITHUB_WORKSPACE/copilot/.workspace | sed -e 's/^application: //')
 echo "App: $app"
@@ -35,7 +36,6 @@ id=$(aws sts get-caller-identity | jq '.Account' | sed 's/"//g')
 tag=$(sed 's/:/-/g' <<<"$GITHUB_SHA")
 echo "Tag: ${tag[@]}"
 
-echo "::group::Generate packages"
 for env in $envs; do
     for svc in $svcs; do
     ./copilot-linux svc package -n $svc -e $env --output-dir "$GITHUB_WORKSPACE/infrastructure" --tag $tag;
@@ -47,20 +47,20 @@ done;
 echo "::endgroup::"
 
 # Get S3 Bucket, if not exist, create it
-echo "::group::Setup S3 Bucket"
+echo "::group::🗑 Setup S3 Bucket"
 s3_bucket=${INPUT_BUCKET:="ecs-$app"}
 echo "S3 Bucket: $s3_bucket"
 if ! (aws s3api head-bucket --bucket "$s3_bucket" 2>/dev/null) ; then
     echo "Bucket not found, creating bucket..."
     if ! (aws s3 mb "s3://$s3_bucket" --region ${AWS_DEFAULT_REGION:="$AWS_REGION"}) ; then
-        echo "::error::Cannot create bucket"
+        echo "::error:: ❌ Cannot create bucket"
     fi
 fi
 echo "::endgroup::"
 
 # Concatenate jobs and services into one var for addons
 # If addons exists, upload addons templates to each S3 bucket and write template URL to template config files.
-echo "::group::Upload addons"
+echo "::group::☁️ Upload addons"
 WORKLOADS=$(echo $jobs $svcs)
 
 for workload in $WORKLOADS; do
@@ -83,7 +83,7 @@ echo "::endgroup::"
 #     - Login and push the image.
 
 for workload in $WORKLOADS; do
-    echo "::group::Building and uploading $workload"
+    echo "::group::🔨 Building and uploading $workload"
     echo "cd into $GITHUB_WORKSPACE"
     cd $GITHUB_WORKSPACE
     manifest=$(cat ./copilot/$workload/manifest.yml | ruby -ryaml -rjson -e 'puts JSON.pretty_generate(YAML.load(ARGF))')
@@ -146,7 +146,7 @@ for env in $INPUT_ENVIRONMENTS; do
     for workload in $INPUT_WORKLOADS; do
         # CloudFormation stack name
         stack="$app-$env-$workload"
-        echo "::group::Deploying stack: $stack"
+        echo "::group::⚡ Deploying stack: $stack"
         aws cloudformation deploy  \
             --template-file "$GITHUB_WORKSPACE/infrastructure/$workload-$env.stack.yml" \
             --stack-name "$stack" \
