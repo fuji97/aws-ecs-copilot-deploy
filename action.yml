@@ -11,7 +11,7 @@ inputs:
   bucket:
     description: 'Bucket to upload CloudFormation template'
     required: false
-  deployMethod:
+  deploy-method:
     description: 'Set the deploy method (manual | automatic)'
     required: false
     default: manual
