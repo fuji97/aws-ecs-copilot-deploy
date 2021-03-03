@@ -16,7 +16,7 @@ GitHub Action to deploy your copilot application to ECS
 
 Bucket to upload CloudFormation template. Default generated name: `ecs-{AppName}`.
 
-### `deploy-method`
+### `deploy_method`
 
 Set the deploy method (`manual` | `automatic`). Default `manual`.
 
