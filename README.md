@@ -4,18 +4,30 @@ GitHub Action to deploy your copilot application to ECS
 
 ## Inputs
 
-### `who-to-greet`
+### `environments`
 
-**Required** The name of the person to greet. Default `"World"`.
+**Required** Environments to deploy.
 
-## Outputs
+### `workloads`
 
-### `time`
+**Required** Workloads to deploy.
 
-The time we greeted you.
+### `bucket`
+
+Bucket to upload CloudFormation template. Default generated name: `ecs-{AppName}`.
+
+### `deploy-method`
+
+Set the deploy method (`manual` | `automatic`). Default `manual`.
+
 
 ## Example usage
-
-uses: actions/hello-world-docker-action@v1
-with:
-  who-to-greet: 'Mona the Octocat'
+```yaml
+- name: Deploy service
+  uses: fuji97/aws-ecs-copilot-deploy@v1
+  with:
+    environments: prod
+    workloads: backend frontend
+    bucket: my-s3-bucket
+    deploy-method: manual
+```
