@@ -8,9 +8,9 @@ chmod +x ./copilot-linux
 echo "::endgroup::"
 
 case $INPUT_DEPLOYMETHOD in
-    "manual") ./methods/manual.sh
+    "manual") /methods/manual.sh
     ;;
-    "automatic") ./methods/automatic.sh
+    "automatic") /methods/automatic.sh
     ;;
     *) echo "::error::Invalid deployment method"
     ;;
