@@ -11,6 +11,7 @@ RUN apt-get update \
     software-properties-common \
     wget \
     unzip \
+    amazon-ecr-credential-helper \
     jq
 # Install AWS CLI v2
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
@@ -27,6 +28,7 @@ RUN apt-get update \
 # TODO Install Ruby and AWS CLI only if manual deploy is requested
 RUN apt-get install -y --no-install-recommends ruby
 RUN rm -rf /var/lib/apt/lists/*
+COPY docker/config.json /.docker/config.json
 
 
 # Copies your code file from your action repository to the filesystem path `/` of the container

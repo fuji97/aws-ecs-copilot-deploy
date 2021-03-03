@@ -141,7 +141,8 @@ for workload in $WORKLOADS; do
     for env in $envs; do
         repo=$(cat ./infrastructure/$workload-$env.params.json | jq '.Parameters.ContainerImage' | sed 's/"//g');
         region=$(echo $repo | cut -d'.' -f4);
-        $(aws ecr get-login --no-include-email --region $region);
+        #$(aws ecr get-login --no-include-email --region $region);
+        # TODO Check if this conflicts with docker hub login
         docker tag $image_id $repo;
         docker push $repo;
     done;
@@ -155,7 +156,13 @@ for env in $INPUT_ENVIRONMENTS; do
         # CloudFormation stack name
         stack="$app-$env-$workload"
         stacks+=stack
-        aws cloudformation deploy --template-file ".infrastructure/$workload-$env.stack.yml" --stack-name "$stack" --parameter-overrides ".infrastructure/$workload-$env.params.json" --capabilities CAPABILITY_NAMED_IAM --s3-bucket "$s3_bucket" --role-arn "$role"
+        aws cloudformation deploy  \
+        --template-file ".infrastructure/$workload-$env.stack.yml" \
+        --stack-name "$stack" \
+        --parameter-overrides "file://infrastructure/$workload-$env.params.json" \
+        --capabilities CAPABILITY_NAMED_IAM \
+        --s3-bucket "$s3_bucket" \
+        --role-arn "$role"
     done;
 done;
 
