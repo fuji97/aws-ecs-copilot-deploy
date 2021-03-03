@@ -151,7 +151,7 @@ for env in $INPUT_ENVIRONMENTS; do
         aws cloudformation deploy  \
             --template-file "$GITHUB_WORKSPACE/infrastructure/$workload-$env.stack.yml" \
             --stack-name "$stack" \
-            --parameter-overrides "file://infrastructure/$workload-$env.params.json" \
+            --parameter-overrides "file://$GITHUB_WORKSPACE/infrastructure/$workload-$env.params.json" \
             --capabilities CAPABILITY_NAMED_IAM \
             --s3-bucket "$s3_bucket" \
             --role-arn "$role"
