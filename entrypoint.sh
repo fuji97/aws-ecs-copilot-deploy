@@ -157,6 +157,8 @@ for env in $INPUT_ENVIRONMENTS; do
     role="arn:aws:iam::$id:role/$app-$env-CFNExecutionRole"
     for workload in $INPUT_SERVICES $INPUT_JOBS; do
         echo "Deploying $env - $workload"
+        ls -la
+        ls infrastructure/
         # CloudFormation stack name
         stack="$app-$env-$workload"
         stacks+=stack
@@ -169,6 +171,8 @@ for env in $INPUT_ENVIRONMENTS; do
         --role-arn "$role"
     done;
 done;
+
+echo "Stacks ${stacks[@]}"
 
 # Wait deploys to finish
 in_progress_status=(CREATE_IN_PROGRESS UPDATE_COMPLETE_CLEANUP_IN_PROGRESS UPDATE_IN_PROGRESS IMPORT_IN_PROGRESS)
