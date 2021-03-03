@@ -47,6 +47,8 @@ echo "Jobs: $jobs"
 # Find all the environments
 envs=$(./copilot-linux env ls --json | jq '.environments[].name' | sed 's/"//g')
 echo "Envs: $envs"
+# Find account ID
+id=$(aws sts get-caller-identity | jq '.Account' | sed 's/"//g')
 # Generate the cloudformation templates.
 # The tag is the build ID but we replaced the colon ':' with a dash '-'.
 tag=$(sed 's/:/-/g' <<<"$GITHUB_SHA")
@@ -142,6 +144,7 @@ for workload in $WORKLOADS; do
         repo=$(cat ./infrastructure/$workload-$env.params.json | jq '.Parameters.ContainerImage' | sed 's/"//g');
         region=$(echo $repo | cut -d'.' -f4);
         #$(aws ecr get-login --no-include-email --region $region);
+        aws ecr get-login-password --region $region | docker login --username AWS --password-stdin $id.dkr.ecr.$region.amazonaws.com;
         # TODO Check if this conflicts with docker hub login
         docker tag $image_id $repo;
         docker push $repo;
@@ -150,7 +153,7 @@ done;
 
 # Deploy CloudFormationTemplate
 for env in $INPUT_ENVIRONMENTS; do
-    id=$(aws sts get-caller-identity | jq '.Account' | sed 's/"//g')
+    
     role="arn:aws:iam::$id:role/$app-$env-CFNExecutionRole"
     for workload in $INPUT_SERVICES $INPUT_JOBS; do
         echo "Deploying $env - $workload"

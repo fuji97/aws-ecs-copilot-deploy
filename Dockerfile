@@ -28,6 +28,7 @@ RUN apt-get update \
 # TODO Install Ruby and AWS CLI only if manual deploy is requested
 RUN apt-get install -y --no-install-recommends ruby
 RUN rm -rf /var/lib/apt/lists/*
+# TODO Not working
 COPY docker/config.json /root/.docker/config.json
 
 
