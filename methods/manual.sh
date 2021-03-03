@@ -54,6 +54,7 @@ if ! (aws s3api head-bucket --bucket "$s3_bucket" 2>/dev/null) ; then
     echo "Bucket not found, creating bucket..."
     if ! (aws s3 mb "s3://$s3_bucket" --region ${AWS_DEFAULT_REGION:="$AWS_REGION"}) ; then
         echo "::error:: ❌ Cannot create bucket"
+        exit 1
     fi
 fi
 echo "::endgroup::"

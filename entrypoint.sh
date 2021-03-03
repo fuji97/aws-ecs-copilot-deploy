@@ -13,5 +13,6 @@ case $INPUT_DEPLOY_METHOD in
     "automatic") /methods/automatic.sh
     ;;
     *) echo "::error::❌ '$INPUT_DEPLOY_METHOD' is not a valid deploy method"
+    exit 1
     ;;
 esac
