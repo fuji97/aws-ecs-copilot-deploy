@@ -150,7 +150,8 @@ done;
 
 # Deploy CloudFormationTemplate
 for env in $INPUT_ENVIRONMENTS; do
-    role="arn:aws:iam::${$(aws sts get-caller-identity | jq '.Account' | sed 's/"//g')}:role/$app-$env-CFNExecutionRole"
+    id=$(aws sts get-caller-identity | jq '.Account' | sed 's/"//g')
+    role="arn:aws:iam::$id:role/$app-$env-CFNExecutionRole"
     for workload in $INPUT_SERVICES $INPUT_JOBS; do
         echo "Deploying $env - $workload"
         # CloudFormation stack name
@@ -167,7 +168,6 @@ for env in $INPUT_ENVIRONMENTS; do
 done;
 
 # Wait deploys to finish
-stacks_done=()
 in_progress_status = (CREATE_IN_PROGRESS UPDATE_COMPLETE_CLEANUP_IN_PROGRESS UPDATE_IN_PROGRESS IMPORT_IN_PROGRESS)
 positive_status = (CREATE_COMPLETE UPDATE_COMPLETE IMPORT_COMPLETE)
 fails=0
