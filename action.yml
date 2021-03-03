@@ -5,7 +5,7 @@ inputs:
   environments:
     description: 'Environments to deploy'
     required: true
-  services:
+  workloads:
     description: 'Workloads to deploy'
     required: true
   bucket:
