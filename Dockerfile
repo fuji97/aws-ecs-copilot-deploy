@@ -35,7 +35,7 @@ RUN rm -rf /var/lib/apt/lists/*
 
 # Copy code file from your action repository to the filesystem path `/` of the container
 COPY entrypoint.sh /entrypoint.sh
-COPY methods/* /methods
+COPY methods/ /methods/
 
 # Set correct permissions to execute the scripts
 RUN chmod +x entrypoint.sh && chmod +x methods/*
