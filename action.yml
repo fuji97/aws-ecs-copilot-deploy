@@ -13,7 +13,7 @@ inputs:
     required: false
   deploy-method:
     description: 'Set the deploy method (manual | automatic)'
-    required: false
+    required: true
     default: manual
 runs:
   using: 'docker'
