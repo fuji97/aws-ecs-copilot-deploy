@@ -1,6 +1,10 @@
 # action.yml
 name: 'Copilot deploy'
 description: 'Copilot deploy'
+author: Federico Rapetti
+branding:
+  icon: 'arrow-up-circle'
+  color: 'orange'
 inputs:
   environments:
     description: 'Environments to deploy'
