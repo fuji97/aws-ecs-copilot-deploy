@@ -5,18 +5,16 @@ inputs:
   environments:
     description: 'Environments to deploy'
     required: true
-  services:
-    description: 'Services to deploy'
+  workloads:
+    description: 'Workloads to deploy'
     required: true
-  aws_access_key:
-    description: 'AWS access key (if not logged)'
+  bucket:
+    description: 'Bucket to upload CloudFormation template'
     required: false
-  aws_secret_key:
-    description: 'AWS secret key (if not logged)'
+  deploy_method:
+    description: 'Set the deploy method (manual | automatic)'
     required: false
-  aws_region:
-    description: 'AWS region (if not logged)'
-    required: false
+    default: manual
 runs:
   using: 'docker'
   image: 'Dockerfile'
