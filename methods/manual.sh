@@ -147,14 +147,14 @@ for workload in $INPUT_WORKLOADS; do
     echo "::endgroup::"
 done;
 
-# Deploy CloudFormationTemplate
+# Deploy CloudFormation Template
 for env in $INPUT_ENVIRONMENTS; do
     role="arn:aws:iam::$id:role/$app-$env-CFNExecutionRole"
     for workload in $INPUT_WORKLOADS; do
         # CloudFormation stack name
         stack="$app-$env-$workload"
         echo "::group::⚡ Deploying stack: $stack"
-        res=(aws cloudformation deploy  \
+        res=$(aws cloudformation deploy  \
             --template-file "$GITHUB_WORKSPACE/infrastructure/$workload-$env.stack.yml" \
             --stack-name "$stack" \
             --parameter-overrides "file://$GITHUB_WORKSPACE/infrastructure/$workload-$env.params.json" \
