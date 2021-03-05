@@ -70,8 +70,12 @@ for workload in $WORKLOADS; do
     tmp=$(mktemp)
     timestamp=$(date +%s)
     aws s3 cp "$ADDONSFILE" "s3://$s3_bucket/ghactions/$timestamp/$workload.addons.stack.yml";
+    s3_region=(aws s3api get-bucket-location --bucket $s3_bucket | jq '.LocationConstraint' | sed 's/"//g')
+    if [ $s3_region == "null" ]; then
+        s3_region="us-east-1"
+    fi
     for env in $INPUT_ENVIRONMENTS; do
-        jq --arg a "https://$s3_bucket/ghactions/$timestamp/$workload.addons.stack.yml" '.Parameters.AddonsTemplateURL = $a' $GITHUB_WORKSPACE/infrastructure/$workload-$env.params.json > "$tmp" && mv "$tmp" $GITHUB_WORKSPACE/infrastructure/$workload-$env.params.json
+        jq --arg a "https://$s3_bucket.s3.$s3_region.amazonaws.com/ghactions/$timestamp/$workload.addons.stack.yml" '.Parameters.AddonsTemplateURL = $a' $GITHUB_WORKSPACE/infrastructure/$workload-$env.params.json > "$tmp" && mv "$tmp" $GITHUB_WORKSPACE/infrastructure/$workload-$env.params.json
     done;
     fi
 done;
