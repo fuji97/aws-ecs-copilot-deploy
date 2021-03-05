@@ -149,9 +149,10 @@ done;
 
 # Change permissions to infrastructure files to let every user read them
 # This should allows upload-artifact to correctly uploads all infrastructure files
-# echo "::group::🔑 Update ./infrastructure permissions to let every user read them"
-# chmod -R o=r $GITHUB_WORKSPACE/infrastructure
-# echo "::endgroup::"
+echo "::group::🔑 Update ./infrastructure permissions to let every user read them"
+chmod -R o=r $GITHUB_WORKSPACE/infrastructure
+chmod o=rx $GITHUB_WORKSPACE/infrastructure
+echo "::endgroup::"
 
 # Deploy CloudFormation Template
 for env in $INPUT_ENVIRONMENTS; do
