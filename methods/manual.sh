@@ -161,7 +161,7 @@ for env in $INPUT_ENVIRONMENTS; do
             --capabilities CAPABILITY_NAMED_IAM \
             --s3-bucket "$s3_bucket" \
             --role-arn "$role"
-        if $?; then
+        if [ $? == 0 ]; then
             echo "Stack $stack deployed successfully"
         else
             echo "::error::❌ Stack '$stack' deploy failed"
