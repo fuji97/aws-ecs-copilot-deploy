@@ -154,14 +154,14 @@ for env in $INPUT_ENVIRONMENTS; do
         # CloudFormation stack name
         stack="$app-$env-$workload"
         echo "::group::⚡ Deploying stack: $stack"
-        res=$(aws cloudformation deploy  \
+        aws cloudformation deploy \
             --template-file "$GITHUB_WORKSPACE/infrastructure/$workload-$env.stack.yml" \
             --stack-name "$stack" \
             --parameter-overrides "file://$GITHUB_WORKSPACE/infrastructure/$workload-$env.params.json" \
             --capabilities CAPABILITY_NAMED_IAM \
             --s3-bucket "$s3_bucket" \
-            --role-arn "$role")
-        if $res; then
+            --role-arn "$role"
+        if $?; then
             echo "Stack $stack deployed successfully"
         else
             echo "::error::❌ Stack '$stack' deploy failed"
