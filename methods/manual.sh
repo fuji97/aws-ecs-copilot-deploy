@@ -70,7 +70,9 @@ for workload in $WORKLOADS; do
     tmp=$(mktemp)
     timestamp=$(date +%s)
     aws s3 cp "$ADDONSFILE" "s3://$s3_bucket/ghactions/$timestamp/$workload.addons.stack.yml";
-    jq --arg a "https://$s3_bucket/ghactions/$timestamp/$workload.addons.stack.yml" '.Parameters.AddonsTemplateURL = $a' $GITHUB_WORKSPACE/infrastructure/$workload-test.params.json > "$tmp" && mv "$tmp" $GITHUB_WORKSPACE/infrastructure/$workload-test.params.json
+    for env in $INPUT_ENVIRONMENTS; do
+        jq --arg a "https://$s3_bucket/ghactions/$timestamp/$workload.addons.stack.yml" '.Parameters.AddonsTemplateURL = $a' $GITHUB_WORKSPACE/infrastructure/$workload-$env.params.json > "$tmp" && mv "$tmp" $GITHUB_WORKSPACE/infrastructure/$workload-$env.params.json
+    done;
     fi
 done;
 echo "::endgroup::"
@@ -148,13 +150,17 @@ for env in $INPUT_ENVIRONMENTS; do
         # CloudFormation stack name
         stack="$app-$env-$workload"
         echo "::group::⚡ Deploying stack: $stack"
-        aws cloudformation deploy  \
+        res=(aws cloudformation deploy  \
             --template-file "$GITHUB_WORKSPACE/infrastructure/$workload-$env.stack.yml" \
             --stack-name "$stack" \
             --parameter-overrides "file://$GITHUB_WORKSPACE/infrastructure/$workload-$env.params.json" \
             --capabilities CAPABILITY_NAMED_IAM \
             --s3-bucket "$s3_bucket" \
-            --role-arn "$role"
+            --role-arn "$role")
+        if ! $res ; then
+            echo "::error::❌ Stack '$stack' deploy failed"
+            exit 1
+        fi
         echo "::endgroup::"
     done;
 done;
