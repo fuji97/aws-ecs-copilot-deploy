@@ -64,14 +64,14 @@ echo "::endgroup::"
 echo "::group::☁️ Upload addons"
 WORKLOADS=$(echo $jobs $svcs)
 
-for workload in $WORKLOADS; do
+for workload in $INPUT_WORKLOADS; do
     ADDONSFILE="$GITHUB_WORKSPACE/infrastructure/$workload.addons.stack.yml"
     if [ -f "$ADDONSFILE" ]; then
     tmp=$(mktemp)
     timestamp=$(date +%s)
     aws s3 cp "$ADDONSFILE" "s3://$s3_bucket/ghactions/$timestamp/$workload.addons.stack.yml";
-    s3_region=(aws s3api get-bucket-location --bucket $s3_bucket | jq '.LocationConstraint' | sed 's/"//g')
-    if [ $s3_region == "null" ]; then
+    s3_region=$(aws s3api get-bucket-location --bucket $s3_bucket | jq '.LocationConstraint' | sed 's/"//g')
+    if [ "$s3_region" == "null" ]; then
         s3_region="us-east-1"
     fi
     for env in $INPUT_ENVIRONMENTS; do
@@ -89,7 +89,7 @@ echo "::endgroup::"
 #     - Retrieve the ECR repository.
 #     - Login and push the image.
 
-for workload in $WORKLOADS; do
+for workload in $INPUT_WORKLOADS; do
     echo "::group::🔨 Building and uploading $workload"
     echo "cd into $GITHUB_WORKSPACE"
     cd $GITHUB_WORKSPACE
